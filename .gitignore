@@ -1,0 +1,9 @@
+# .gitignore
+venv/
+__pycache__/
+.env
+*.pyc
+Finance/
+.mypy_cache/
+*.egg-info/
+.pytest_cache/
