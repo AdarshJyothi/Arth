@@ -183,7 +183,12 @@ async function loadQuote(ticker) {
 
     card.innerHTML = `
       <div class="quote-header">
+      <div class="quote-header-top">
         <div class="quote-name">${d.name} · ${d.ticker}</div>
+        <button id="watchlistBtn" class="watchlist-add-btn" onclick="toggleWatchlist('${d.ticker}', '${d.name}')">
+          + Watchlist
+        </button>
+      </div>  
         <div class="quote-price-row">
           <span class="quote-price">₹${d.price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           <span class="quote-change ${isGain ? "gain" : "loss"}">
@@ -456,15 +461,10 @@ function updateTimestamp() {
 
 async function refreshMarketData() {
   secondsSinceUpdate = 0;
-
-  // refresh indices
   await loadIndices();
   const indicesList = document.getElementById("indicesList");
   indicesList.classList.remove("refreshed");
-  void indicesList.offsetWidth; // force reflow to restart animation
-  indicesList.classList.add("refreshed");
-
-  // refresh movers
+  setTimeout(() => indicesList.classList.add("refreshed"), 50); // ← should be this
   await loadMovers();
 }
 
@@ -473,6 +473,106 @@ setInterval(updateTimestamp, 5000);
 
 // refresh data every 60 seconds
 setInterval(refreshMarketData, 100000);
+
+// ── SIDEBAR TOGGLE ────────────────────────────
+const sidebar = document.getElementById("sidebar");
+document.getElementById("sidebarToggle").addEventListener("click", () => {
+  sidebar.classList.toggle("collapsed");
+});
+
+// ── PAGE ROUTING ──────────────────────────────
+document.querySelectorAll(".sidebar-item").forEach((item) => {
+  item.addEventListener("click", () => {
+    const page = item.dataset.page;
+
+    // update active nav item
+    document.querySelectorAll(".sidebar-item").forEach((i) => i.classList.remove("active"));
+    item.classList.add("active");
+
+    // show correct page
+    document.querySelectorAll(".page").forEach((p) => p.classList.remove("active-page"));
+    document.getElementById(`page-${page}`).classList.add("active-page");
+
+    // if navigating to watchlist, render it
+    if (page === "watchlist") renderWatchlist();
+  });
+});
+
+// ── WATCHLIST ─────────────────────────────────
+let watchlist = JSON.parse(localStorage.getItem("arth-watchlist") || "[]");
+
+function saveWatchlist() {
+  localStorage.setItem("arth-watchlist", JSON.stringify(watchlist));
+}
+
+function toggleWatchlist(ticker, name) {
+  const exists = watchlist.find((w) => w.ticker === ticker);
+  if (exists) {
+    watchlist = watchlist.filter((w) => w.ticker !== ticker);
+  } else {
+    watchlist.push({ ticker, name });
+  }
+  saveWatchlist();
+  updateWatchlistBtn(ticker);
+}
+
+function removeFromWatchlist(ticker) {
+  watchlist = watchlist.filter((w) => w.ticker !== ticker);
+  saveWatchlist();
+  renderWatchlist();
+  updateWatchlistBtn(ticker); // ← ADD THIS — syncs the button on dashboard
+}
+
+function updateWatchlistBtn(ticker) {
+  const btn = document.getElementById("watchlistBtn");
+  if (!btn) return;
+  const inList = watchlist.find((w) => w.ticker === ticker);
+  btn.textContent = inList ? "★ In Watchlist" : "+ Watchlist";
+  btn.classList.toggle("in-watchlist", !!inList);
+}
+
+async function renderWatchlist() {
+  const empty = document.getElementById("watchlistEmpty");
+  const grid  = document.getElementById("watchlistItems");
+
+  if (!watchlist.length) {
+    empty.style.display = "flex";
+    grid.innerHTML = "";
+    return;
+  }
+
+  empty.style.display = "none";
+  grid.innerHTML = watchlist.map((w) => `
+    <li class="watchlist-card" id="wcard-${w.ticker.replace(".","_")}">
+      <div class="watchlist-card-top">
+        <div>
+          <div class="watchlist-ticker">${w.ticker.replace(".NS","").replace(".BO","")}</div>
+          <div class="watchlist-name">${w.name}</div>
+        </div>
+        <button class="watchlist-remove" onclick="removeFromWatchlist('${w.ticker}')">✕</button>
+      </div>
+      <div class="watchlist-price" id="wprice-${w.ticker.replace(".","_")}">Loading…</div>
+      <div class="watchlist-change" id="wchange-${w.ticker.replace(".","_")}"></div>
+    </li>`).join("");
+
+  // fetch live prices for each watchlist stock
+  for (const w of watchlist) {
+    try {
+      const res  = await fetch(`${API}/quote/${w.ticker}`);
+      const data = await res.json();
+      const id   = w.ticker.replace(".", "_");
+      const priceEl  = document.getElementById(`wprice-${id}`);
+      const changeEl = document.getElementById(`wchange-${id}`);
+      if (priceEl)  priceEl.textContent  = `₹${data.price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      if (changeEl) {
+        const isGain = data.change_pct >= 0;
+        changeEl.textContent  = `${isGain ? "+" : ""}${data.change_pct}%`;
+        changeEl.className    = `watchlist-change ${isGain ? "gain" : "loss"}`;
+      }
+    } catch (e) { /* silent */ }
+  }
+}
+
 
 // ── INIT ──────────────────────────────────────
 loadIndices();

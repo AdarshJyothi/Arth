@@ -46,116 +46,145 @@
 
   <body>
 
-    <!-- ── HEADER ─────────────────────────────── -->
-    <header id="header">
-      <div class="header-inner">
-        <!-- Logo -->
-        <div class="logo">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="Arth logo">
-            <rect width="28" height="28" rx="7" fill="#2F6B4A"/>
-            <text x="7" y="21" font-family="Instrument Serif, serif" font-size="18" fill="white">A</text>
-            <line x1="7" y1="24" x2="21" y2="12" stroke="#7ECFA0" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <span class="logo-text">Arth</span>
-        </div>
 
-        <!-- Search -->
-        <div class="search-wrapper">
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="Search stocks — e.g. INFY, HDFC…"
-            autocomplete="off"
-          />
-          <ul id="searchDropdown" class="search-dropdown hidden"></ul>
-        </div>
-
-        <!-- Theme Toggle -->
-        <button data-theme-toggle aria-label="Toggle theme" class="theme-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-        </button>
+  <!-- ── HEADER ─────────────────────────────── -->
+  <header id="header">
+    <div class="header-inner">
+      <!-- Logo -->
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="Arth logo">
+          <rect width="28" height="28" rx="7" fill="#2F6B4A"/>
+          <text x="7" y="21" font-family="Instrument Serif, serif" font-size="18" fill="white">A</text>
+          <line x1="7" y1="24" x2="21" y2="12" stroke="#7ECFA0" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="logo-text">Arth</span>
       </div>
-    </header>
 
-    <!-- ── INDICES BAR ─────────────────────────── -->
-    <div id="indicesBar" class="indices-bar">
-      <div class="indices-inner" id="indicesList">
-        <!-- Populated by JS -->
-        <span class="index-skeleton">Loading…</span>
+      <!-- Search -->
+      <div class="search-wrapper">
+        <input type="text" id="searchInput"
+          placeholder="Search stocks — e.g. INFY, HDFC…"
+          autocomplete="off"/>
+        <ul id="searchDropdown" class="search-dropdown hidden"></ul>
       </div>
-      <span id="lastUpdated" class="last-updated">--</span>
+
+      <!-- Theme Toggle -->
+      <button data-theme-toggle aria-label="Toggle theme" class="theme-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
     </div>
+  </header>
 
-    <!-- ── MAIN CONTENT ───────────────────────── -->
-    <main class="main-content">
+  <!-- ── APP BODY ───────────────────────────── -->
+  <div class="app-body">
 
-      <!-- LEFT: Quote + Chart -->
-      <section class="left-panel">
+    <!-- ── SIDEBAR ─────────────────────────── -->
+    <nav class="sidebar" id="sidebar">
+       <!--hamburger button -->
+      <button class="hamburger-btn" id="sidebarToggle" aria-label="Toggle sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6"  x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="sidebar-section-label">TOOLS</div>
+      <ul class="sidebar-nav">
+        <li class="sidebar-item active" data-page="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          <span class="sidebar-label">Dashboard</span>
+        </li>
+        <li class="sidebar-item" data-page="watchlist">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span class="sidebar-label">Watchlist</span>
+        </li>
+      </ul>
+    </nav>
 
-        <!-- Quote Card -->
-        <div id="quoteCard" class="quote-card">
-          <div class="quote-placeholder">
-            <p>Search for a stock above to get started</p>
-          </div>
+    <!-- ── RIGHT SIDE ──────────────────────── -->
+    <div class="main-wrapper">
+
+      <!-- Indices Bar -->
+      <div id="indicesBar" class="indices-bar">
+        <div class="indices-inner" id="indicesList">
+          <span class="index-skeleton">Loading…</span>
         </div>
+        <span id="lastUpdated" class="last-updated">--</span>
+      </div>
 
-        <!-- Chart -->
-        <div id="chartSection" class="chart-section hidden">
-          <div class="chart-controls">
-            <!-- Chart type toggle -->
-            <div class="chart-type-toggle">
-              <button class="type-btn active" data-type="line">Line</button>
-              <button class="type-btn" data-type="candlestick">Candle</button>
+      <!-- ── PAGE: DASHBOARD ─────────────────── -->
+      <div id="page-dashboard" class="page active-page">
+        <main class="main-content">
+          <section class="left-panel">
+            <div id="quoteCard" class="quote-card">
+              <div class="quote-placeholder">
+                <p>Search for a stock above to get started</p>
+              </div>
             </div>
+            <div id="chartSection" class="chart-section hidden">
+              <div class="chart-controls">
+                <div class="chart-type-toggle">
+                  <button class="type-btn active" data-type="line">Line</button>
+                  <button class="type-btn" data-type="candlestick">Candle</button>
+                </div>
+                <div class="period-divider"></div>
+                <button class="period-btn active" data-period="1mo">1M</button>
+                <button class="period-btn" data-period="3mo">3M</button>
+                <button class="period-btn" data-period="6mo">6M</button>
+                <button class="period-btn" data-period="1y">1Y</button>
+                <button class="fullscreen-btn" id="fullscreenBtn" title="Fullscreen">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+              </div>
+            </div>
+          </section>
+          <aside class="right-panel">
+            <h2 class="panel-title">Market Movers</h2>
+            <div class="movers-section">
+              <h3 class="movers-label gainers-label">▲ Top Gainers</h3>
+              <ul id="gainersList" class="movers-list"><li class="mover-skeleton">Loading…</li></ul>
+            </div>
+            <div class="movers-section">
+              <h3 class="movers-label losers-label">▼ Top Losers</h3>
+              <ul id="losersList" class="movers-list"><li class="mover-skeleton">Loading…</li></ul>
+            </div>
+          </aside>
+        </main>
+      </div>
 
-            <div class="period-divider"></div>
-
-            <!-- Period buttons -->
-            <button class="period-btn active" data-period="1mo">1M</button>
-            <button class="period-btn" data-period="3mo">3M</button>
-            <button class="period-btn" data-period="6mo">6M</button>
-            <button class="period-btn" data-period="1y">1Y</button>
-
-            <!-- Full screen button -->
-          <button class="fullscreen-btn" id="fullscreenBtn" title="Fullscreen">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      <!-- ── PAGE: WATCHLIST ─────────────────── -->
+      <div id="page-watchlist" class="page">
+        <main class="watchlist-content">
+          <div class="watchlist-header">
+            <h1 class="page-title">Watchlist</h1>
+            <p class="page-subtitle">Track your favourite stocks</p>
+          </div>
+          <div id="watchlistEmpty" class="watchlist-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
-          </button>
-
+            <p>No stocks in your watchlist yet.</p>
+            <p class="watchlist-hint">Search for a stock on the Dashboard and click <strong>+ Watchlist</strong> to add it here.</p>
           </div>
-          <div class="chart-container">
-            <canvas id="priceChart"></canvas>
-          </div>
-        </div>
+          <ul id="watchlistItems" class="watchlist-grid"></ul>
+        </main>
+      </div>
 
-      </section>
+    </div>
+  </div>
 
-      <!-- RIGHT: Market Movers -->
-      <aside class="right-panel">
-        <h2 class="panel-title">Market Movers</h2>
-
-        <div class="movers-section">
-          <h3 class="movers-label gainers-label">▲ Top Gainers</h3>
-          <ul id="gainersList" class="movers-list">
-            <li class="mover-skeleton">Loading…</li>
-          </ul>
-        </div>
-
-        <div class="movers-section">
-          <h3 class="movers-label losers-label">▼ Top Losers</h3>
-          <ul id="losersList" class="movers-list">
-            <li class="mover-skeleton">Loading…</li>
-          </ul>
-        </div>
-      </aside>
-
-    </main>
-
-    <!-- Your scripts -->
-    <script src="app.js"></script>
-
-  </body>
+  <script src="app.js"></script>
+</body>
 </html>
