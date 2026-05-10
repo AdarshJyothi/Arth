@@ -25,10 +25,20 @@
     />
 
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script> 
 
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Luxon (date handling) -->
+<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+
+<!-- Chart.js date adapter -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+
+<!-- Chart.js Candlestick plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
 
     <!-- Your styles -->
     <link rel="stylesheet" href="style.css" />
@@ -75,6 +85,7 @@
         <!-- Populated by JS -->
         <span class="index-skeleton">Loading…</span>
       </div>
+      <span id="lastUpdated" class="last-updated">--</span>
     </div>
 
     <!-- ── MAIN CONTENT ───────────────────────── -->
@@ -93,10 +104,27 @@
         <!-- Chart -->
         <div id="chartSection" class="chart-section hidden">
           <div class="chart-controls">
+            <!-- Chart type toggle -->
+            <div class="chart-type-toggle">
+              <button class="type-btn active" data-type="line">Line</button>
+              <button class="type-btn" data-type="candlestick">Candle</button>
+            </div>
+
+            <div class="period-divider"></div>
+
+            <!-- Period buttons -->
             <button class="period-btn active" data-period="1mo">1M</button>
             <button class="period-btn" data-period="3mo">3M</button>
             <button class="period-btn" data-period="6mo">6M</button>
             <button class="period-btn" data-period="1y">1Y</button>
+
+            <!-- Full screen button -->
+          <button class="fullscreen-btn" id="fullscreenBtn" title="Fullscreen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          </button>
+
           </div>
           <div class="chart-container">
             <canvas id="priceChart"></canvas>
