@@ -453,10 +453,15 @@ let secondsSinceUpdate = 0;
 function updateTimestamp() {
   const el = document.getElementById("lastUpdated");
   if (!el) return;
-  el.textContent = secondsSinceUpdate === 0
-    ? "Just updated"
-    : `Updated ${secondsSinceUpdate}s ago`;
   secondsSinceUpdate += 5;
+  if (secondsSinceUpdate === 0) {
+    el.textContent = "Just updated";
+  } else if (secondsSinceUpdate < 60) {
+    el.textContent = `Updated ${secondsSinceUpdate}s ago`;
+  } else {
+    const mins = Math.floor(secondsSinceUpdate / 60);
+    el.textContent = `Updated ${mins}m ago`;
+  }
 }
 
 async function refreshMarketData() {
@@ -471,11 +476,12 @@ async function refreshMarketData() {
 // tick every 5 seconds to update the "X seconds ago" text
 setInterval(updateTimestamp, 5000);
 
-// refresh data every 60 seconds
-setInterval(refreshMarketData, 100000);
+//Refresh every 5mins
+setInterval(refreshMarketData, 300000);   // 5 minutes = 300,000ms
 
-// ── SIDEBAR TOGGLE ────────────────────────────
+// ── SIDEBAR TOGGLE ────────────────────────
 const sidebar = document.getElementById("sidebar");
+
 document.getElementById("sidebarToggle").addEventListener("click", () => {
   sidebar.classList.toggle("collapsed");
 });
@@ -495,6 +501,7 @@ document.querySelectorAll(".sidebar-item").forEach((item) => {
 
     // if navigating to watchlist, render it
     if (page === "watchlist") renderWatchlist();
+     
   });
 });
 
