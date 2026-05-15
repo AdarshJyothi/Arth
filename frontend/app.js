@@ -3,6 +3,10 @@ let priceChart = null;
 let currentTicker = null;
 let currentChartType = "line";
 
+// Set initial theme from system preference
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+
 // ── THEME TOGGLE ──────────────────────────────
 const themeToggle = document.querySelector("[data-theme-toggle]");
 themeToggle.addEventListener("click", () => {
@@ -10,6 +14,8 @@ themeToggle.addEventListener("click", () => {
   const current = html.getAttribute("data-theme");
   html.setAttribute("data-theme", current === "dark" ? "light" : "dark");
 });
+
+
 
 // ── INDICES ───────────────────────────────────
 async function loadIndices() {

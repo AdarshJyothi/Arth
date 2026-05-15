@@ -94,8 +94,6 @@ body {
 }
 
 .header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: var(--space-3) var(--space-6);
   display: flex;
   align-items: center;
@@ -194,9 +192,15 @@ body {
   border-bottom: 1px solid var(--color-border);
   padding: var(--space-2) 0;
   overflow-x: auto;
-  display: flex;                    /* ← add */
-  align-items: center;              /* ← add */
-  justify-content: space-between;   /* ← add */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  scrollbar-width: none;        /* Firefox — hides scrollbar but keeps scroll */
+  -ms-overflow-style: none;     /* IE/Edge */
+}
+
+.indices-bar::-webkit-scrollbar {
+  display: none;                /* Chrome/Safari */
 }
 
 .last-updated {
@@ -218,15 +222,14 @@ body {
 }
 
 .indices-inner {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 0 var(--space-6);
   display: flex;
   gap: var(--space-8);
   align-items: center;
   white-space: nowrap;
-  flex: 1;          
+  flex: 1;
   flex-shrink: 0;
+  width: 100%;
 }
 
 .index-item {
@@ -484,9 +487,16 @@ body {
 
 /* ── APP BODY ────────────────────────────── */
 .app-body {
+  flex: 1;
   display: flex;
-  height: calc(100dvh - 56px);
   overflow: hidden;
+  min-height: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
 }
 
 /* ── SIDEBAR ─────────────────────────────── */
@@ -563,7 +573,7 @@ body {
   color: var(--color-text-muted);
   transition: all var(--transition);
   white-space: nowrap;
-  border-right: 3px solid transparent;
+  border-right: 3px solid var(--color-primary);
 }
 
 .sidebar-item:hover {
