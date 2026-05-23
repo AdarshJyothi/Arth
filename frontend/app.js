@@ -1,4 +1,13 @@
 const API = "http://localhost:8000/api/v1/market";
+
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
 let priceChart = null;
 let currentTicker = null;
 let currentChartType = "line";
@@ -123,18 +132,15 @@ async function drawSparkline(canvasId, ticker, isGain) {
 // ── SEARCH ────────────────────────────────────
 const searchInput = document.getElementById("searchInput");
 const searchDropdown = document.getElementById("searchDropdown");
-let searchTimeout = null;
 
-searchInput.addEventListener("input", () => {
-  clearTimeout(searchTimeout);
+searchInput.addEventListener("input", debounce((e) => {
   const q = searchInput.value.trim();
   if (q.length < 1) {
     searchDropdown.classList.add("hidden");
     return;
   }
-  searchTimeout = setTimeout(() => fetchSearch(q), 300);
-});
-
+  fetchSearch(q);
+}, 300));
 searchInput.addEventListener("keydown", (e) => {
   if (e.key === "Escape") searchDropdown.classList.add("hidden");
 });
@@ -166,7 +172,7 @@ async function fetchSearch(q) {
 
     searchDropdown.querySelectorAll("li").forEach((li) => {
       li.addEventListener("click", () => {
-        searchInput.value = li.dataset.ticker;
+        searchInput.value = li.dataset.ticker.replace(".NS", "").replace(".BO", "");
         searchDropdown.classList.add("hidden");
         loadQuote(li.dataset.ticker);
       });
@@ -229,8 +235,11 @@ async function loadQuote(ticker) {
         </div>
       </div>`;
 
+    
     loadChart(ticker, "1mo");
     document.getElementById("chartSection").classList.remove("hidden");
+    updateWatchlistBtn(ticker);
+
   } catch (e) {
     card.innerHTML = `<div class="quote-placeholder">Failed to load data for ${ticker}</div>`;
   }
@@ -297,7 +306,7 @@ async function loadLineChart(ticker, period) {
           },
           y: {
             position: "right",
-            grid: { color: "rgba(255,255,255,0.05)" },
+            grid: { color: "rgba(128,128,128,0.1)" },
             ticks: {
               color: "#7aab85", font: { size: 11 },
               callback: (v) => "₹" + v.toLocaleString("en-IN"),
@@ -366,8 +375,8 @@ async function loadCandlestickChart(ticker, period) {
             ticks: { color: "#7aab85", font: { size: 11 }, maxTicksLimit: 6 },
           },
           y: {
-            position: "right",
-            grid: { color: "rgba(255,255,255,0.05)" },
+            position: "right",      
+            grid: { color: "rgba(128,128,128,0.1)" },
             ticks: {
               color: "#7aab85", font: { size: 11 },
               callback: (v) => "₹" + v.toLocaleString("en-IN"),
@@ -456,13 +465,11 @@ document.addEventListener("keydown", (e) => {
 // ── AUTO REFRESH ──────────────────────────────
 let secondsSinceUpdate = 0;
 
-function updateTimestamp() {
+  function updateTimestamp() {
   const el = document.getElementById("lastUpdated");
   if (!el) return;
   secondsSinceUpdate += 5;
-  if (secondsSinceUpdate === 0) {
-    el.textContent = "Just updated";
-  } else if (secondsSinceUpdate < 60) {
+  if (secondsSinceUpdate < 60) {
     el.textContent = `Updated ${secondsSinceUpdate}s ago`;
   } else {
     const mins = Math.floor(secondsSinceUpdate / 60);
@@ -544,6 +551,21 @@ function updateWatchlistBtn(ticker) {
   btn.classList.toggle("in-watchlist", !!inList);
 }
 
+// ── WATCHLIST CARD → DASHBOARD NAV ────────────
+function navigateToDashboard(ticker) {
+  // 1. Switch sidebar active state
+  document.querySelectorAll(".sidebar-item").forEach((i) => i.classList.remove("active"));
+  document.querySelector('[data-page="dashboard"]').classList.add("active");
+
+  // 2. Switch visible page
+  document.querySelectorAll(".page").forEach((p) => p.classList.remove("active-page"));
+  document.getElementById("page-dashboard").classList.add("active-page");
+
+  // 3. Load the quote + chart (same as clicking a search result)
+  searchInput.value = ticker.replace(".NS", "").replace(".BO", "");
+  loadQuote(ticker);
+}
+
 async function renderWatchlist() {
   const empty = document.getElementById("watchlistEmpty");
   const grid  = document.getElementById("watchlistItems");
@@ -555,18 +577,28 @@ async function renderWatchlist() {
   }
 
   empty.style.display = "none";
-  grid.innerHTML = watchlist.map((w) => `
-    <li class="watchlist-card" id="wcard-${w.ticker.replace(".","_")}">
-      <div class="watchlist-card-top">
-        <div>
-          <div class="watchlist-ticker">${w.ticker.replace(".NS","").replace(".BO","")}</div>
-          <div class="watchlist-name">${w.name}</div>
-        </div>
-        <button class="watchlist-remove" onclick="removeFromWatchlist('${w.ticker}')">✕</button>
+
+ grid.innerHTML = watchlist.map((w) => `
+  <li class="watchlist-card" id="wcard-${w.ticker.replace(".","_")}"
+      data-ticker="${w.ticker}">
+    <div class="watchlist-card-top">
+      <div>
+        <div class="watchlist-ticker">${w.ticker.replace(".NS","").replace(".BO","")}</div>
+        <div class="watchlist-name">${w.name}</div>
       </div>
-      <div class="watchlist-price" id="wprice-${w.ticker.replace(".","_")}">Loading…</div>
-      <div class="watchlist-change" id="wchange-${w.ticker.replace(".","_")}"></div>
-    </li>`).join("");
+      <button class="watchlist-remove" onclick="removeFromWatchlist('${w.ticker}')">✕</button>
+    </div>
+    <div class="watchlist-price" id="wprice-${w.ticker.replace(".","_")}">Loading…</div>
+    <div class="watchlist-change" id="wchange-${w.ticker.replace(".","_")}"></div>
+  </li>`).join("");
+
+// Wire up card clicks (skip if the remove ✕ button was clicked)
+grid.querySelectorAll(".watchlist-card").forEach((card) => {
+  card.addEventListener("click", (e) => {
+    if (e.target.closest(".watchlist-remove")) return; // don't trigger on ✕
+    navigateToDashboard(card.dataset.ticker);
+  });
+});
 
   // fetch live prices for each watchlist stock
   for (const w of watchlist) {
@@ -590,3 +622,9 @@ async function renderWatchlist() {
 // ── INIT ──────────────────────────────────────
 loadIndices();
 loadMovers();
+
+window.addEventListener("resize", () => {
+  if (priceChart) {
+    priceChart.resize();
+  }
+});
