@@ -7,4 +7,4 @@ Finance/
 .mypy_cache/
 *.egg-info/
 .pytest_cache/
-*.txt
+commands.txt
