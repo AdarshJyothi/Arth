@@ -1,5 +1,0 @@
-venv,ipykernel
-pip install fastapi uvicorn yfinance pydantic-settings python-dotenv
-
-cd backend 
-uvicorn app.main:app --reload --port 8000
