@@ -32,7 +32,7 @@
     />
 
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script> 
+    <!-- <script src="https://cdn.tailwindcss.com"></script>  -->
 
     <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -59,7 +59,8 @@
       <!-- Logo -->
       <div class="logo">
         <img src="arth-logo.png" alt="Arth logo" width="36" height="36"
-            style="border-radius: 8px; display: block;" />
+            style="border-radius: 8px; display: block;"
+            onerror="this.style.display='none'" />
         <span class="logo-text">Arth</span>
       </div>
 
@@ -192,4 +193,9 @@
 
   <script src="app.js"></script>
 </body>
+<noscript>
+  <div style="text-align:center; padding: 2rem; font-family: sans-serif;">
+    Arth requires JavaScript to run. Please enable it in your browser settings.
+  </div>
+</noscript>
 </html>

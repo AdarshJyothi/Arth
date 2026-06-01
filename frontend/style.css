@@ -232,7 +232,7 @@ body {
   white-space: nowrap;
   flex: 1;
   flex-shrink: 0;
-  width: 100%;
+/* width: 100%; */
 }
 
 .index-item {
@@ -426,7 +426,8 @@ body {
 .period-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
 .period-btn.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 
-.chart-container { position: relative; height: 280px; }
+/* .chart-container { position: relative; height: clamp(220px, 30vh, 420px); } */
+.chart-container { position: relative; height: clamp(220px, 40vh, 500px); }
 
 /* ── RIGHT PANEL — MOVERS ────────────────────── */
 .right-panel {
@@ -464,7 +465,7 @@ body {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   transition: background var(--transition);
-  cursor: default;
+  cursor: pointer;
   gap: var(--space-3);        /* ← add this */
 }
 
@@ -610,6 +611,19 @@ body {
   margin: 0 auto var(--space-3);
 }
 
+/* ── FOCUS VISIBLE ───────────────────────────── */
+.sidebar-item:focus-visible,
+.mover-item:focus-visible,
+.watchlist-card:focus-visible,
+.period-btn:focus-visible,
+.type-btn:focus-visible,
+.watchlist-add-btn:focus-visible,
+.theme-btn:focus-visible,
+.fullscreen-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* ── MAIN WRAPPER ────────────────────────── */
 .main-wrapper {
   flex: 1;
@@ -713,3 +727,28 @@ body {
 }
 .watchlist-add-btn:hover { background: var(--color-primary); color: white; }
 .watchlist-add-btn.in-watchlist { background: var(--color-primary); color: white; }
+
+
+/* ── MOBILE SIDEBAR ──────────────────────────── */
+@media (max-width: 640px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 200;
+    transform: translateX(0);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                width 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+    width: 220px;       /* keep width so it slides back in fully */
+    min-width: 220px;
+  }
+
+  .main-wrapper {
+    width: 100%;
+  }
+}

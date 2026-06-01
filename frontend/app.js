@@ -56,12 +56,14 @@ async function loadMovers() {
     const res = await fetch(`${API}/movers`);
     const data = await res.json();
 
-    const renderList = async (items, elId, isGain) => {
+   
+
+    async function renderList(items, elId, isGain) {
       document.getElementById(elId).innerHTML = items
         .map((m, i) => `
-          <li class="mover-item">
+          <li class="mover-item" data-ticker="${m.ticker}" title="View ${m.name}">
             <div class="mover-left">
-              <div class="mover-ticker">${m.ticker.replace(".NS","").replace(".BO","")}</div>
+              <div class="mover-ticker">${m.ticker.replace(".NS", "").replace(".BO", "")}</div>
               <div class="mover-name">${m.name}</div>
             </div>
             <div class="mover-right">
@@ -76,6 +78,15 @@ async function loadMovers() {
             </div>
           </li>`
         ).join("");
+
+      // Wire up click → load quote on dashboard
+      document.getElementById(elId).querySelectorAll(".mover-item").forEach((li) => {
+        li.addEventListener("click", () => {
+          const ticker = li.dataset.ticker;
+          searchInput.value = ticker.replace(".NS", "").replace(".BO", "");
+          loadQuote(ticker);
+        });
+      });
 
       // draw sparklines after DOM is ready
       for (let i = 0; i < items.length; i++) {
