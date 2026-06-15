@@ -255,7 +255,8 @@ body {
 .main-content {
   padding: var(--space-6);
   display: grid;
-  grid-template-columns: 1fr 320px;
+  /* minmax(0,...) stops the chart canvas from forcing the column wider (resize loop) */
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: var(--space-6);
   align-items: start;
   width: 100%;
@@ -448,7 +449,16 @@ body {
 .period-btn.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 
 /* .chart-container { position: relative; height: clamp(220px, 30vh, 420px); } */
-.chart-container { position: relative; height: clamp(220px, 40vh, 500px); }
+.chart-container { position: relative; height: clamp(220px, 40vh, 500px); overflow: hidden; }
+/* Pin canvas so it can never feed its own size back into layout (kills the
+   Chart.js resize-loop where the chart grows on sidebar toggle / zoom out) */
+.chart-container > canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
 
 /* ── RIGHT PANEL — MOVERS ────────────────────── */
 .right-panel {
@@ -1255,6 +1265,14 @@ body {
   position: relative;
   height: 220px;
   width: 100%;
+  overflow: hidden;
+}
+.chart-canvas-wrap > canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
 }
 .portfolio-chart-header {
   display: flex;
