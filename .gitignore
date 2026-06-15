@@ -10,6 +10,5 @@ Finance/
 commands.txt
 *.md
 !README.md
-backend/alembic.ini
 backend/app/services/screener_meta.json
 
