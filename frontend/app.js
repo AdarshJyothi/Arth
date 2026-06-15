@@ -511,7 +511,7 @@ async function refreshMarketData() {
   await loadIndices();
   const indicesList = document.getElementById("indicesList");
   indicesList.classList.remove("refreshed");
-  setTimeout(() => indicesList.classList.add("refreshed"), 50); // ← should be this
+  setTimeout(() => indicesList.classList.add("refreshed"), 50);
   await loadMovers();
 }
 

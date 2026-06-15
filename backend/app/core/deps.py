@@ -12,7 +12,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     try:
         payload = decode_token(token)
         user_id = int(payload.get("sub"))
-    except (JWTError, TypeError):
+    except (JWTError, ValueError, TypeError):
         raise HTTPException(status_code=401, detail="Invalid token")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

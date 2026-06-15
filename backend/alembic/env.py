@@ -15,12 +15,13 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-from app.models.user import User
-from app.models.holding import Holding
+# for 'autogenerate' support.
+# Import EVERY model so its table registers on Base.metadata — otherwise
+# autogenerate would treat the unimported tables as removed and emit DROP TABLE.
 from app.db.base import Base
+from app.models import (  # noqa: F401
+    user, holding, sell, alert, dividend, transaction, watchlist,
+)
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
