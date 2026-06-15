@@ -61,7 +61,7 @@ async function loadMovers() {
     async function renderList(items, elId, isGain) {
       document.getElementById(elId).innerHTML = items
         .map((m, i) => `
-          <li class="mover-item" data-ticker="${m.ticker}" title="View ${m.name}">
+          <li class="mover-item ${m.change_pct < 0 ? "card-down" : ""}" data-ticker="${m.ticker}" title="View ${m.name}">
             <div class="mover-left">
               <div class="mover-ticker">${m.ticker.replace(".NS", "").replace(".BO", "")}</div>
               <div class="mover-name">${m.name}</div>
@@ -279,9 +279,16 @@ async function loadLineChart(ticker, period) {
     if (priceChart) priceChart.destroy();
 
     const ctx = document.getElementById("priceChart").getContext("2d");
-    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
-    gradient.addColorStop(0, isGain ? "rgba(76,175,125,0.2)" : "rgba(239,83,80,0.2)");
-    gradient.addColorStop(1, "rgba(0,0,0,0)");
+    // Build the fill gradient from the live chart area so it spans the full
+    // height in every state (incl. fullscreen), not a fixed pixel height.
+    const fillGradient = (context) => {
+      const { ctx: c, chartArea } = context.chart;
+      if (!chartArea) return undefined;
+      const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+      g.addColorStop(0, isGain ? "rgba(76,175,125,0.2)" : "rgba(239,83,80,0.2)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      return g;
+    };
 
     priceChart = new Chart(ctx, {
       type: "line",
@@ -291,7 +298,7 @@ async function loadLineChart(ticker, period) {
           data: prices,
           borderColor: color,
           borderWidth: 2,
-          backgroundColor: gradient,
+          backgroundColor: fillGradient,
           fill: true,
           tension: 0.3,
           pointRadius: 0,
@@ -446,10 +453,17 @@ const compressIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none
   <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
 </svg>`;
 
+let _chartSectionPlaceholder = null;
+
 function exitFullscreen() {
   chartSection.classList.remove("is-fullscreen");
   fullscreenBtn.innerHTML = expandIcon;
-
+  // Move back to original position
+  if (_chartSectionPlaceholder) {
+    _chartSectionPlaceholder.parentNode.insertBefore(chartSection, _chartSectionPlaceholder);
+    _chartSectionPlaceholder.remove();
+    _chartSectionPlaceholder = null;
+  }
   // destroy and redraw at original size
   const activePeriod = document.querySelector(".period-btn.active").dataset.period;
   if (priceChart) priceChart.destroy();
@@ -461,6 +475,10 @@ fullscreenBtn.addEventListener("click", () => {
   const isFullscreen = chartSection.classList.toggle("is-fullscreen");
   fullscreenBtn.innerHTML = isFullscreen ? compressIcon : expandIcon;
   if (isFullscreen) {
+    // Move to body to escape stacking contexts (sidebar z-index, etc.)
+    _chartSectionPlaceholder = document.createComment("chart-section-placeholder");
+    chartSection.parentNode.insertBefore(_chartSectionPlaceholder, chartSection);
+    document.body.appendChild(chartSection);
     if (priceChart) priceChart.resize();
   } else {
     exitFullscreen();
@@ -493,7 +511,7 @@ async function refreshMarketData() {
   await loadIndices();
   const indicesList = document.getElementById("indicesList");
   indicesList.classList.remove("refreshed");
-  setTimeout(() => indicesList.classList.add("refreshed"), 50); // ← should be this
+  setTimeout(() => indicesList.classList.add("refreshed"), 50);
   await loadMovers();
 }
 
@@ -523,56 +541,72 @@ document.querySelectorAll(".sidebar-item").forEach((item) => {
     document.querySelectorAll(".page").forEach((p) => p.classList.remove("active-page"));
     document.getElementById(`page-${page}`).classList.add("active-page");
 
-    // if navigating to watchlist, render it
-    if (page === "watchlist") renderWatchlist();
-     
+    // Watchlist requires sign-in (same gate as Portfolio)
+    if (page === "watchlist") {
+      if (typeof getToken === "function" && getToken()) {
+        document.getElementById("watchlistAuth").classList.add("hidden");
+        document.getElementById("watchlistView").classList.remove("hidden");
+        renderWatchlist();
+      } else {
+        document.getElementById("watchlistAuth").classList.remove("hidden");
+        document.getElementById("watchlistView").classList.add("hidden");
+      }
+    }
+
   });
 });
 
-// ── WATCHLIST ─────────────────────────────────
-let watchlist = JSON.parse(localStorage.getItem("arth-watchlist") || "[]");
+// ── WATCHLIST (per-user, backend) ─────────────
+let watchlist = [];          // cache of {id, ticker, name}
+let watchlistAlerts = {};    // ticker(upper) -> alert object
 
-function saveWatchlist() {
-  localStorage.setItem("arth-watchlist", JSON.stringify(watchlist));
+const wlId = (t) => t.replace(/\./g, "_");
+function inWatchlist(ticker) { return watchlist.some((w) => w.ticker === ticker.toUpperCase()); }
+
+async function loadWatchlistCache() {
+  if (typeof getToken !== "function" || !getToken()) { watchlist = []; return; }
+  const res = await authFetch(`${AUTH_API}/portfolio/watchlist`);
+  watchlist = res ? await res.json() : [];
 }
 
-function toggleWatchlist(ticker, name) {
-  const exists = watchlist.find((w) => w.ticker === ticker);
-  if (exists) {
-    watchlist = watchlist.filter((w) => w.ticker !== ticker);
+async function toggleWatchlist(ticker, name) {
+  if (typeof getToken !== "function" || !getToken()) { openAuthModal("login"); return; }
+  const up = ticker.toUpperCase();
+  if (inWatchlist(up)) {
+    await authFetch(`${AUTH_API}/portfolio/watchlist?ticker=${encodeURIComponent(up)}`, { method: "DELETE" });
+    watchlist = watchlist.filter((w) => w.ticker !== up);
   } else {
-    watchlist.push({ ticker, name });
+    const res = await authFetch(`${AUTH_API}/portfolio/watchlist`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker: up, name }),
+    });
+    if (res) { const w = await res.json(); if (!inWatchlist(up)) watchlist.push(w); }
   }
-  saveWatchlist();
   updateWatchlistBtn(ticker);
 }
 
-function removeFromWatchlist(ticker) {
-  watchlist = watchlist.filter((w) => w.ticker !== ticker);
-  saveWatchlist();
+async function removeFromWatchlist(ticker) {
+  const up = ticker.toUpperCase();
+  await authFetch(`${AUTH_API}/portfolio/watchlist?ticker=${encodeURIComponent(up)}`, { method: "DELETE" });
+  watchlist = watchlist.filter((w) => w.ticker !== up);
   renderWatchlist();
-  updateWatchlistBtn(ticker); // ← ADD THIS — syncs the button on dashboard
+  updateWatchlistBtn(ticker);
 }
 
 function updateWatchlistBtn(ticker) {
   const btn = document.getElementById("watchlistBtn");
   if (!btn) return;
-  const inList = watchlist.find((w) => w.ticker === ticker);
+  const inList = inWatchlist(ticker);
   btn.textContent = inList ? "★ In Watchlist" : "+ Watchlist";
-  btn.classList.toggle("in-watchlist", !!inList);
+  btn.classList.toggle("in-watchlist", inList);
 }
 
 // ── WATCHLIST CARD → DASHBOARD NAV ────────────
 function navigateToDashboard(ticker) {
-  // 1. Switch sidebar active state
   document.querySelectorAll(".sidebar-item").forEach((i) => i.classList.remove("active"));
   document.querySelector('[data-page="dashboard"]').classList.add("active");
-
-  // 2. Switch visible page
   document.querySelectorAll(".page").forEach((p) => p.classList.remove("active-page"));
   document.getElementById("page-dashboard").classList.add("active-page");
-
-  // 3. Load the quote + chart (same as clicking a search result)
   searchInput.value = ticker.replace(".NS", "").replace(".BO", "");
   loadQuote(ticker);
 }
@@ -581,42 +615,53 @@ async function renderWatchlist() {
   const empty = document.getElementById("watchlistEmpty");
   const grid  = document.getElementById("watchlistItems");
 
-  if (!watchlist.length) {
-    empty.style.display = "flex";
-    grid.innerHTML = "";
-    return;
-  }
+  await loadWatchlistCache();
 
+  // Load alerts and map by ticker so each card can show its alert
+  watchlistAlerts = {};
+  const ares = await authFetch(`${AUTH_API}/portfolio/alerts`);
+  if (ares) (await ares.json()).forEach((a) => { watchlistAlerts[a.ticker.toUpperCase()] = a; });
+
+  if (!watchlist.length) { empty.style.display = "flex"; grid.innerHTML = ""; return; }
   empty.style.display = "none";
 
- grid.innerHTML = watchlist.map((w) => `
-  <li class="watchlist-card" id="wcard-${w.ticker.replace(".","_")}"
-      data-ticker="${w.ticker}">
-    <div class="watchlist-card-top">
-      <div>
-        <div class="watchlist-ticker">${w.ticker.replace(".NS","").replace(".BO","")}</div>
-        <div class="watchlist-name">${w.name}</div>
+  grid.innerHTML = watchlist.map((w) => {
+    const id = wlId(w.ticker);
+    const al = watchlistAlerts[w.ticker.toUpperCase()];
+    const alertHtml = al
+      ? `<div class="wl-alert ${al.triggered ? "wl-alert-hit" : ""}" title="Click to edit alert" onclick="event.stopPropagation();openAlertModal('${w.ticker}')">
+           <span>🔔 ${al.direction === "above" ? "≥" : "≤"} ₹${al.target_price.toLocaleString("en-IN")}</span>
+           ${al.triggered ? '<span class="alert-badge">HIT</span>' : ""}
+           <button class="wl-alert-clear" title="Remove alert" onclick="event.stopPropagation();clearWatchlistAlert(${al.id})">✕</button>
+         </div>`
+      : `<button class="wl-alert-set" onclick="event.stopPropagation();openAlertModal('${w.ticker}')">🔔 Set alert</button>`;
+    return `<li class="watchlist-card" id="wcard-${id}" data-ticker="${w.ticker}">
+      <div class="watchlist-card-top">
+        <div>
+          <div class="watchlist-ticker">${w.ticker.replace(".NS","").replace(".BO","")}</div>
+          <div class="watchlist-name">${w.name}</div>
+        </div>
+        <button class="watchlist-remove" onclick="event.stopPropagation();removeFromWatchlist('${w.ticker}')">✕</button>
       </div>
-      <button class="watchlist-remove" onclick="removeFromWatchlist('${w.ticker}')">✕</button>
-    </div>
-    <div class="watchlist-price" id="wprice-${w.ticker.replace(".","_")}">Loading…</div>
-    <div class="watchlist-change" id="wchange-${w.ticker.replace(".","_")}"></div>
-  </li>`).join("");
+      <div class="watchlist-price" id="wprice-${id}">Loading…</div>
+      <div class="watchlist-change" id="wchange-${id}"></div>
+      ${alertHtml}
+    </li>`;
+  }).join("");
 
-// Wire up card clicks (skip if the remove ✕ button was clicked)
-grid.querySelectorAll(".watchlist-card").forEach((card) => {
-  card.addEventListener("click", (e) => {
-    if (e.target.closest(".watchlist-remove")) return; // don't trigger on ✕
-    navigateToDashboard(card.dataset.ticker);
+  grid.querySelectorAll(".watchlist-card").forEach((card) => {
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".watchlist-remove") || e.target.closest(".wl-alert") || e.target.closest(".wl-alert-set")) return;
+      navigateToDashboard(card.dataset.ticker);
+    });
   });
-});
 
   // fetch live prices for each watchlist stock
   for (const w of watchlist) {
     try {
       const res  = await fetch(`${API}/quote/${w.ticker}`);
       const data = await res.json();
-      const id   = w.ticker.replace(".", "_");
+      const id   = wlId(w.ticker);
       const priceEl  = document.getElementById(`wprice-${id}`);
       const changeEl = document.getElementById(`wchange-${id}`);
       if (priceEl)  priceEl.textContent  = `₹${data.price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -624,10 +669,67 @@ grid.querySelectorAll(".watchlist-card").forEach((card) => {
         const isGain = data.change_pct >= 0;
         changeEl.textContent  = `${isGain ? "+" : ""}${data.change_pct}%`;
         changeEl.className    = `watchlist-change ${isGain ? "gain" : "loss"}`;
+        document.getElementById(`wcard-${id}`)?.classList.toggle("card-down", !isGain);
       }
     } catch (e) { /* silent */ }
   }
 }
+
+// ── PER-CARD PRICE ALERTS ─────────────────────
+let alertModalTicker = "";
+let editingAlertId = null;   // id of the alert being edited (null = new)
+
+function openAlertModal(ticker) {
+  alertModalTicker = ticker;
+  const existing = watchlistAlerts[ticker.toUpperCase()];
+  editingAlertId = existing ? existing.id : null;
+  document.getElementById("wlAlertTicker").textContent = ticker.replace(".NS","").replace(".BO","");
+  document.getElementById("wlAlertForm").reset();
+  if (existing) {
+    document.getElementById("wlAlertDirection").value = existing.direction;
+    document.getElementById("wlAlertPrice").value     = existing.target_price;
+  }
+  document.getElementById("wlAlertTitle").textContent  = existing ? "Edit Price Alert" : "Set Price Alert";
+  document.getElementById("wlAlertSubmit").textContent = existing ? "Update Alert" : "Set Alert";
+  document.getElementById("wlAlertModal").classList.remove("hidden");
+}
+function closeAlertModal() {
+  document.getElementById("wlAlertModal").classList.add("hidden");
+  alertModalTicker = "";
+  editingAlertId = null;
+}
+
+document.getElementById("wlAlertForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const target_price = parseFloat(document.getElementById("wlAlertPrice").value);
+  const direction    = document.getElementById("wlAlertDirection").value;
+  const wasEditing   = editingAlertId != null;
+  // Backend create always inserts, so editing = remove the old alert first
+  if (wasEditing) {
+    await authFetch(`${AUTH_API}/portfolio/alerts/${editingAlertId}`, { method: "DELETE" });
+    notifiedAlerts.delete(editingAlertId);   // let the updated alert notify fresh
+  }
+  const res = await authFetch(`${AUTH_API}/portfolio/alerts`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ticker: alertModalTicker.toUpperCase(), target_price, direction }),
+  });
+  if (!res) return;
+  closeAlertModal();
+  toast(wasEditing ? "Alert updated" : "Alert set");
+  renderWatchlist();
+  if (typeof checkAlerts === "function") checkAlerts();
+});
+
+async function clearWatchlistAlert(id) {
+  await authFetch(`${AUTH_API}/portfolio/alerts/${id}`, { method: "DELETE" });
+  toast("Alert removed", "error");
+  renderWatchlist();
+}
+
+document.getElementById("wlAlertModalClose").addEventListener("click", closeAlertModal);
+document.getElementById("wlAlertModal").addEventListener("click", (e) => {
+  if (e.target.id === "wlAlertModal") closeAlertModal();
+});
 
 
 // ── INIT ──────────────────────────────────────

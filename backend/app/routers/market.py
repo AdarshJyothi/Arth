@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from app.services.market_service import get_quote, get_history, search_tickers, get_movers, get_indices
 
-router = APIRouter(prefix="/api/v1/market", tags=["Market"]) 
+router = APIRouter(prefix="/api/v1/market", tags=["Market"])
 
 @router.get("/quote/{ticker}")
 def quote(ticker: str):

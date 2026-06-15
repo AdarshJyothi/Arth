@@ -97,17 +97,26 @@ def search_tickers(query: str) -> list[SearchResult]:
     return results
 
 def get_movers() -> MoversResponse:
+    # ONE batched download instead of 20 sequential .info calls
+    try:
+        df = yf.download(NIFTY50_TICKERS, period="5d", group_by="ticker",
+                         progress=False, threads=True, auto_adjust=True)
+    except Exception:
+        df = None
+
     results = []
     for ticker in NIFTY50_TICKERS:
         try:
-            info = yf.Ticker(ticker).info
-            price = info.get("currentPrice") or info.get("regularMarketPrice", 0.0)
-            prev = info.get("previousClose") or price
+            close = df[ticker]["Close"].dropna()
+            if not len(close):
+                continue
+            price = float(close.iloc[-1])
+            prev  = float(close.iloc[-2]) if len(close) > 1 else price
             pct = round(((price - prev) / prev) * 100, 2) if prev else 0.0
             results.append(MoverItem(
                 ticker=ticker,
-                name=info.get("shortName", ticker),
-                price=price,
+                name=ticker.replace(".NS", "").replace(".BO", ""),
+                price=round(price, 2),
                 change_pct=pct,
             ))
         except Exception:
@@ -116,17 +125,26 @@ def get_movers() -> MoversResponse:
     return MoversResponse(gainers=results[:5], losers=results[-5:][::-1])
 
 def get_indices() -> list[IndexSnapshot]:
+    tickers = [idx["ticker"] for idx in INDICES]
+    try:
+        df = yf.download(tickers, period="5d", group_by="ticker",
+                         progress=False, threads=True, auto_adjust=True)
+    except Exception:
+        df = None
+
     snapshots = []
     for idx in INDICES:
         try:
-            info = yf.Ticker(idx["ticker"]).info
-            price = info.get("regularMarketPrice") or info.get("currentPrice", 0.0)
-            prev = info.get("regularMarketPreviousClose") or price
+            close = df[idx["ticker"]]["Close"].dropna()
+            if not len(close):
+                continue
+            price = float(close.iloc[-1])
+            prev  = float(close.iloc[-2]) if len(close) > 1 else price
             pct = round(((price - prev) / prev) * 100, 2) if prev else 0.0
             snapshots.append(IndexSnapshot(
                 name=idx["name"],
                 ticker=idx["ticker"],
-                price=price,
+                price=round(price, 2),
                 change_pct=pct,
             ))
         except Exception:

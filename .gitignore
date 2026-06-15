@@ -8,3 +8,7 @@ Finance/
 *.egg-info/
 .pytest_cache/
 commands.txt
+*.md
+!README.md
+backend/app/services/screener_meta.json
+
