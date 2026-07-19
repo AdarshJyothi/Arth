@@ -20,3 +20,6 @@ psycopg2-binary==2.9.12         # PostgreSQL driver
 bcrypt==5.0.0
 python-jose[cryptography]==3.5.0
 email-validator==2.3.0          # required for pydantic EmailStr
+
+# ── News / sentiment (Stage 3) ──
+vaderSentiment==3.3.2           # lexicon sentiment scoring (no torch)

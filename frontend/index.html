@@ -47,7 +47,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
 
     <!-- Your styles -->
-    <link rel="stylesheet" href="style.css?v=3" />
+    <link rel="stylesheet" href="style.css?v=4" />
   </head>
 
   <body>
@@ -212,6 +212,13 @@
               <div class="chart-container">
                 <canvas id="priceChart"></canvas>
               </div>
+            </div>
+            <div id="newsSection" class="news-section hidden">
+              <div class="news-head-row">
+                <h3 class="news-title">News &amp; Sentiment</h3>
+                <span id="newsMeta" class="news-meta"></span>
+              </div>
+              <div id="newsBody" class="news-body"></div>
             </div>
           </section>
           <aside class="right-panel">
@@ -516,7 +523,7 @@
     </div>
   </noscript>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=4"></script>
   <script src="portfolio.js"></script>
   <script src="screener.js"></script>
 </body>

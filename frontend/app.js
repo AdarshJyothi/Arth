@@ -1,4 +1,5 @@
 const API = "http://localhost:8000/api/v1/market";
+const NEWS_API = "http://localhost:8000/api/v1/news";
 
 function debounce(fn, delay) {
   let timer;
@@ -250,9 +251,92 @@ async function loadQuote(ticker) {
     loadChart(ticker, "1mo");
     document.getElementById("chartSection").classList.remove("hidden");
     updateWatchlistBtn(ticker);
+    loadNews(ticker);
 
   } catch (e) {
     card.innerHTML = `<div class="quote-placeholder">Failed to load data for ${ticker}</div>`;
+  }
+}
+
+// ── NEWS & SENTIMENT (Stage 3) ────────────────
+function escHtml(s) {
+  return (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
+function timeAgo(iso) {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (isNaN(then)) return "";
+  const s = Math.max(0, (Date.now() - then) / 1000);
+  if (s < 3600)  return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  return Math.floor(s / 86400) + "d ago";
+}
+
+function renderNews(d) {
+  const s = d.summary;
+  const total = d.count || 1;
+  const pct = (n) => (n / total) * 100;
+
+  const summary = `
+    <div class="news-summary">
+      <div class="news-summary-top">
+        <span class="senti-pill pill-${s.overall}">${s.overall}</span>
+        <span class="senti-avg">avg ${s.avg_score >= 0 ? "+" : ""}${s.avg_score}</span>
+      </div>
+      <div class="senti-gauge" title="${s.bullish} bullish · ${s.neutral} neutral · ${s.bearish} bearish">
+        <div class="senti-seg seg-bull" style="width:${pct(s.bullish)}%"></div>
+        <div class="senti-seg seg-neut" style="width:${pct(s.neutral)}%"></div>
+        <div class="senti-seg seg-bear" style="width:${pct(s.bearish)}%"></div>
+      </div>
+      <div class="senti-counts">
+        <span class="c-bull">${s.bullish} bullish</span> ·
+        <span>${s.neutral} neutral</span> ·
+        <span class="c-bear">${s.bearish} bearish</span>
+      </div>
+    </div>`;
+
+  const items = d.items.map((it) => `
+    <li class="news-item">
+      <a class="news-link" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+        <div class="news-item-top">
+          <span class="senti-chip chip-${it.sentiment_label}">${it.sentiment_label}</span>
+          ${it.source ? `<span class="news-source">${escHtml(it.source)}</span>` : ""}
+          <span class="news-time">${timeAgo(it.published_at)}</span>
+        </div>
+        <div class="news-headline">${escHtml(it.headline)}</div>
+      </a>
+    </li>`).join("");
+
+  return summary + `<ul class="news-list">${items}</ul>`;
+}
+
+async function loadNews(ticker) {
+  const section = document.getElementById("newsSection");
+  const body = document.getElementById("newsBody");
+  const meta = document.getElementById("newsMeta");
+  section.classList.remove("hidden");
+  meta.textContent = "";
+  body.innerHTML = `<div class="news-loading">Loading news…</div>`;
+
+  try {
+    const res = await fetch(`${NEWS_API}/${ticker}`);
+    const d = await res.json();
+    if (currentTicker !== ticker) return;  // user switched stocks mid-fetch
+
+    if (!d.items || d.items.length === 0) {
+      meta.textContent = "";
+      body.innerHTML = `<div class="news-empty">No recent news for ${escHtml(ticker)}.</div>`;
+      return;
+    }
+    meta.textContent = `${d.count} ${d.count === 1 ? "story" : "stories"}`;
+    body.innerHTML = renderNews(d);
+  } catch (e) {
+    if (currentTicker !== ticker) return;
+    meta.textContent = "";
+    body.innerHTML = `<div class="news-empty">Couldn’t load news right now.</div>`;
   }
 }
 

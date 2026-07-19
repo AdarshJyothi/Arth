@@ -31,11 +31,14 @@ app.include_router(portfolio_router, prefix="/api/v1")
 from app.routers.screener import router as screener_router
 app.include_router(screener_router, prefix="/api/v1")
 
+from app.routers.news import router as news_router
+app.include_router(news_router)
+
 # Ensure all model tables exist (idempotent — only creates missing tables).
 # Guards against models added after the initial Alembic migration (sells, alerts, dividends).
 # NB: use `from app.models import ...` — `import app.models.x` would rebind the
 # name `app` in this module and shadow the FastAPI instance above.
 from app.db.base import Base
 from app.db.session import engine
-from app.models import user, holding, sell, alert, dividend, transaction, watchlist  # noqa: F401
+from app.models import user, holding, sell, alert, dividend, transaction, watchlist, news  # noqa: F401
 Base.metadata.create_all(bind=engine)

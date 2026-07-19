@@ -1637,3 +1637,72 @@ body {
 .tag-small { background: rgba(100,181,246,0.12); color: #64b5f6; border-color: rgba(100,181,246,0.2); }
 
 /* Card glow consolidated in the "GLOWING GREEN BOXES" block above */
+
+/* ── NEWS & SENTIMENT (Stage 3) ─────────────── */
+.news-section {
+  margin-top: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-6);
+}
+.news-head-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3); margin-bottom: var(--space-4);
+}
+.news-title { font-size: var(--text-lg); color: var(--color-text); margin: 0; }
+.news-meta { font-size: var(--text-xs); color: var(--color-text-faint); }
+
+/* sentiment summary: overall pill + gauge bar + counts */
+.news-summary { margin-bottom: var(--space-4); }
+.news-summary-top {
+  display: flex; align-items: baseline; gap: var(--space-3); margin-bottom: var(--space-2);
+}
+.senti-pill {
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+}
+.pill-bullish { color: var(--color-gain); background: var(--color-gain-bg); }
+.pill-bearish { color: var(--color-loss); background: var(--color-loss-bg); }
+.pill-neutral { color: var(--color-text-muted); background: var(--color-surface-2); }
+.senti-avg { font-size: var(--text-xs); color: var(--color-text-faint); }
+
+.senti-gauge {
+  display: flex; height: 8px; border-radius: var(--radius-full);
+  overflow: hidden; background: var(--color-surface-2);
+}
+.senti-seg { height: 100%; }
+.seg-bull { background: var(--color-gain); }
+.seg-neut { background: var(--color-text-faint); }
+.seg-bear { background: var(--color-loss); }
+.senti-counts {
+  margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);
+}
+.senti-counts .c-bull { color: var(--color-gain); font-weight: 600; }
+.senti-counts .c-bear { color: var(--color-loss); font-weight: 600; }
+
+/* headline list */
+.news-list { list-style: none; margin: 0; padding: 0; }
+.news-item { border-top: 1px solid var(--color-border); }
+.news-item:first-child { border-top: none; }
+.news-link { display: block; text-decoration: none; color: inherit; padding: var(--space-3) 0; }
+.news-link:hover .news-headline { color: var(--color-primary); }
+.news-item-top {
+  display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1);
+}
+.senti-chip {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  padding: 2px var(--space-2); border-radius: var(--radius-sm); white-space: nowrap;
+}
+.chip-bullish { color: var(--color-gain); background: var(--color-gain-bg); }
+.chip-bearish { color: var(--color-loss); background: var(--color-loss-bg); }
+.chip-neutral { color: var(--color-text-muted); background: var(--color-surface-2); }
+.news-source { font-size: var(--text-xs); color: var(--color-text-muted); font-weight: 600; }
+.news-time { font-size: var(--text-xs); color: var(--color-text-faint); margin-left: auto; }
+.news-headline { font-size: var(--text-sm); color: var(--color-text); line-height: 1.4; }
+
+.news-loading, .news-empty {
+  padding: var(--space-4); text-align: center;
+  font-size: var(--text-sm); color: var(--color-text-faint);
+}
